@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Document</title>
+        <style>
+            * {
+                font-family: 'Times New Roman', Times, serif, sans-serif;
+            }
+            .container {
+                margin: auto;
+                width: 50%;
+                padding: 20px;
+            }
+            fieldset {
+                width: 500px;
+            }
+            input[type=submit]{
+                background-color: #0452aa;
+                border: none;
+                color: white;
+                padding: 16px 32px;
+                text-decoration: none;
+                margin: 4px 2px;
+                cursor: pointer;
+                margin-left: 58%;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="question-box">
+                <form action="{% url 'polls:vote' question.id %}" method="post">
+                    {% csrf_token %}
+                    <fieldset>
+                        <legend><h1>{{ question.question_text }}</h1></legend>
+                        {% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
+                        {% for choice in question.choice_set.all %}
+                            <input type="radio" name="choice" id="choice{{ forloop.counter }}" value="{{ choice.id }}">
+                            <label for="choice{{ forloop.counter }}">{{ choice.choice_text }}</label><br>
+                        {% endfor %}
+                        <br/>
+                    </fieldset>
+                    <input type="submit" value="Vote">
+                </form>
+            </div>
+        </div>
+    </body>
+</html>

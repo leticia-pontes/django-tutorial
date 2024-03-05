@@ -1,55 +1,68 @@
-from django.shortcuts import render, get_object_or_404
-from django.http import HttpResponse, HttpRequest, Http404
-from .models import Question, Choice
-from django.template import loader
+from django.http import HttpResponseRedirect
 from django.db.models import F
+from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
+from django.views import generic
+from django.utils import timezone
 
-# Create your views here.
+from .models import Choice, Question
+
+
+class IndexView(generic.ListView):
+    def get_queryset(self):
+        """Return the last five published questions."""
+        return Question.objects \
+            .filter(pub_date__lte=timezone.now()) \
+            .order_by("-pub_date")[:5]
 
 # Função recebe requisição. Não importa requisição pois ainda não especificou a requisição.
-def detail(request, question_id):
-    question = get_object_or_404(Question, pk=question_id)
-    return render(request, "polls/detail.html", {"question": question})
+class DetailView(generic.DetailView):
+    model = Question
+    template_name = "polls/detail.html"
 
-def results(request, question_id):
-    response = "You're looking at the results of question %s."
-    return HttpResponse(response % question_id)
+class ResultsView(generic.DetailView):
+    model = Question
+    template_name = "polls/results.html"
 
+# Cria uma view
+# def create_detail_view(model):
+#     class DetailViewNova(generic.DetailView):
+#         model = model
+#         template_name = "polls/results.html"
+    
+#     type('DetailViewNova', (generic(DetailView,)), {
+#         'model': model,
+#         'template_name': 
+#     }),
 
-def vote(request, question_id):
-    return HttpResponse("You're voting on question %s." % question_id)
+#     return DetailViewNova
 
-def index(request):
-    latest_question_list = Question.objects.order_by("-pub_date")[:5]
-    template = loader.get_template("polls/index.html")
-    context = {
-        "latest_question_list": latest_question_list,
-    }
-    return HttpResponse(template.render(context, request))
+# DetailView = create_detail_view(Question)
 
-# def vote(request, question_id):
-    # question = get_object_or_404(Question, pk=question_id)
-    # try:
-    #     selected_choice = question.choice_set.get(pk=request.POST["choice"])
-    # except (KeyError, Choice.DoesNotExist):
-    #     # Redisplay the question voting form.
-    #     return render(
-    #         request,
-    #         "polls/detail.html",
-    #         {
-    #             "question": question,
-    #             "error_message": "You didn't select a choice.",
-    #         },
-    #     )
-    # else:
-    #     selected_choice.votes = F("votes") + 1
-    #     selected_choice.save()
-    #     # Always return an HttpResponseRedirect after successfully dealing
-    #     # with POST data. This prevents data from being posted twice if a
-    #     # user hits the Back button.
-    #     return HttpResponseRedirect(reverse("polls:results", args=(question.id,)))
+def vote(request, question_id): # View Voto
+    question = get_object_or_404(Question, pk=question_id) # Pega o objeto ou o erro
+    try:
+        # Objeto carregado do banco
+        selected_choice = question.choice_set.get(pk=request.POST["choice"]) # Pega as opções da Question específica
+    except (KeyError, Choice.DoesNotExist):
+        # Redisplay the question voting form.
+        return render( #
+            request,
+            "polls/detail.html",
+            {
+                "question": question,
+                "error_message": "You didn't select a choice.",
+            }, # Retorna a questão e a mensagem de erro.
+        )
+    else:
+        # Evita conflito de concorrência. 
+        # Caso: duas pessoas votaram (passa de 1 para 3, por exemplo). Enquanto isso, outra pessoa vota e o valor dos votos não altera (vai de 2 para 3, por exemplo).
+        selected_choice.votes = F("votes") + 1 # Incrementa os votos
+        selected_choice.save() # Salva o voto
 
-def results(request, question_id):
-    question = get_object_or_404(Question, pk=question_id)
-    return render(request, "polls/results.html", {"question": question})
+        # Always return an HttpResponseRedirect after successfully dealing
+        # with POST data. This prevents data from being posted twice if a
+        # user hits the Back button.
+        return HttpResponseRedirect(reverse("polls:results", args=(question.id,))) # Redireciona para a tela de Resultados
+        # Se não utilizar o Redirect, a requisição POST continua armazenada
+        # Reverse: retorna uma URL (relativa a uma View)

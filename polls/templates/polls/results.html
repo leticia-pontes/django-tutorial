@@ -1,8 +1,9 @@
+<title>Resultados</title>
 <h1>{{ question.question_text }}</h1>
 
 <ul>
 {% for choice in question.choice_set.all %}
-    <li>{{ choice.choice_text }} -- {{ choice.votes }} vote{{ choice.votes|pluralize }}</li>
+    <li>{{ choice.choice_text }} -- {{ choice.votes }} vote{{ choice.votes|pluralize }}</li> <!-- Pluralize: filtro do Django. Verifica se valor é plural; se for, adiciona um 's' na última palavra -->
 {% endfor %}
 </ul>
 
